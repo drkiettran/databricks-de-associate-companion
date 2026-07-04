@@ -1,0 +1,10 @@
+# The dataset generator (data/generate_data.py) runs on the Python standard
+# library alone — nothing here is required to produce CSV or NDJSON data.
+#
+# These are OPTIONAL and only used if present:
+#   pyarrow   -> enables --format parquet (otherwise falls back to NDJSON)
+#
+# Inside a Databricks notebook, pandas/pyarrow are already provided by the
+# runtime, so you typically install nothing.
+
+# pyarrow>=14.0    # uncomment for local Parquet generation

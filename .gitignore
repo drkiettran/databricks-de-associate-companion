@@ -1,0 +1,22 @@
+# Generated data — regenerate with data/generate_data.py, never commit
+data/output/
+**/output/
+*.ndjson
+*.parquet
+!data/**/example_*.ndjson
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Databricks
+.databricks/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
