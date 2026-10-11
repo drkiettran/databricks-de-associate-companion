@@ -18,14 +18,14 @@ What it produces (a small retail star schema, exam-relevant)
   products/           dimension           (one snapshot file)
   sales/              fact, batched       (one file per day -> Auto Loader drops)
   customers_cdc/      change feed         (INSERT/UPDATE/DELETE for MERGE / AUTO CDC)
-  order_events/       nested JSON         (arrays + nested objects -> explode/flatten)
+  order_events.ndjson nested JSON         (arrays + nested objects -> explode/flatten)
   sales_dirty/        dirty variant       (nulls, dupes, outliers -> cleaning/quality)
 
 Usage
 -----
   python generate_data.py --outdir ./output
-  python generate_data.py --outdir ./output --days 14 --rows-per-day 500 --seed 42
-  python generate_data.py --outdir /Volumes/main/companion/raw --format ndjson --dirty
+  python generate_data.py --outdir ./output --days 14 --rows-per-day 200 --seed 42
+  python generate_data.py --outdir /Volumes/workspace/de_cert/raw --format ndjson --dirty
 
 Run `python generate_data.py --help` for all flags.
 """
@@ -278,7 +278,7 @@ def main() -> None:
     ap.add_argument("--products", type=int, default=50)
     ap.add_argument("--days", type=int, default=14,
                     help="Number of daily sales batch files (Auto Loader drops)")
-    ap.add_argument("--rows-per-day", type=int, default=500)
+    ap.add_argument("--rows-per-day", type=int, default=200)
     ap.add_argument("--cdc-changes", type=int, default=120)
     ap.add_argument("--order-events", type=int, default=300)
     ap.add_argument("--start-date", default="2024-01-01")

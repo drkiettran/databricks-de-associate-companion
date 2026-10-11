@@ -46,7 +46,7 @@ the files are ready for ingestion exercises:
 ```python
 # In a Databricks notebook cell
 %sh python /Workspace/<path-to-repo>/data/generate_data.py \
-    --outdir /Volumes/<catalog>/<schema>/<volume>/raw --days 14 --dirty
+    --outdir /Volumes/<catalog>/<schema>/<volume> --days 14 --dirty
 ```
 
 See `common/setup.py` for a one-call helper that creates the catalog, schema,
@@ -110,3 +110,15 @@ real/organizational data — regenerate locally instead.
 ## License
 
 MIT — see `LICENSE`.
+
+## Known limitation: hardcoded catalog in exercises
+
+`common/config.py` reads `COMPANION_CATALOG`, `COMPANION_SCHEMA`, and
+`COMPANION_VOLUME`, and `common/setup.py` honors them. The exercises themselves
+currently **hardcode** `workspace.de_cert` and `/Volumes/workspace/de_cert/raw`
+rather than calling `table_name()` and `volume_path()`.
+
+That matches the Free Edition defaults, so nothing needs changing there. On a
+paid workspace without a `workspace` catalog, edit the catalog name in each
+exercise — including the `%sql` cells, which cannot read Python variables.
+Migrating the exercises onto the config helpers is planned.

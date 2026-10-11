@@ -4,15 +4,19 @@ Shared configuration for the companion exercises.
 Override any of these with environment variables so the same code runs against
 Free Edition and a paid workspace without edits:
 
-    COMPANION_CATALOG   (default: main)
-    COMPANION_SCHEMA    (default: companion)
+    COMPANION_CATALOG   (default: workspace)
+    COMPANION_SCHEMA    (default: de_cert)
     COMPANION_VOLUME    (default: raw)
+
+Defaults target Databricks Free Edition, whose default catalog is `workspace` and
+which does not permit CREATE CATALOG. On a paid workspace, set COMPANION_CATALOG
+to a catalog you can write to (commonly `main`).
 """
 
 import os
 
-CATALOG = os.environ.get("COMPANION_CATALOG", "main")
-SCHEMA = os.environ.get("COMPANION_SCHEMA", "companion")
+CATALOG = os.environ.get("COMPANION_CATALOG", "workspace")
+SCHEMA = os.environ.get("COMPANION_SCHEMA", "de_cert")
 VOLUME = os.environ.get("COMPANION_VOLUME", "raw")
 
 
