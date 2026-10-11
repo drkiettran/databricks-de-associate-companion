@@ -46,7 +46,7 @@ the files are ready for ingestion exercises:
 ```python
 # In a Databricks notebook cell
 %sh python /Workspace/<path-to-repo>/data/generate_data.py \
-    --outdir /Volumes/<catalog>/<schema>/<volume> --days 14 --dirty
+    --outdir /Volumes/<catalog>/<schema>/<volume> --days 14
 ```
 
 See `common/setup.py` for a one-call helper that creates the catalog, schema,
