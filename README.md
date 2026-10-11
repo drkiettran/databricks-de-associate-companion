@@ -122,3 +122,5 @@ That matches the Free Edition defaults, so nothing needs changing there. On a
 paid workspace without a `workspace` catalog, edit the catalog name in each
 exercise — including the `%sql` cells, which cannot read Python variables.
 Migrating the exercises onto the config helpers is planned.
+
+See exercises/05_cicd for the CI/CD exercises.
