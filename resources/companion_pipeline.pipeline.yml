@@ -1,0 +1,13 @@
+# A serverless Lakeflow Spark Declarative Pipeline, deployed per environment.
+# Same source code everywhere; the target schema comes from ${var.schema}.
+
+resources:
+  pipelines:
+    companion_pipeline:
+      name: companion-pipeline-${bundle.target}
+      catalog: workspace
+      schema: ${var.schema}
+      serverless: true
+      libraries:
+        - file:
+            path: ../exercises/05_cicd/ex01_region_summary.sql

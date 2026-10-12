@@ -7,8 +7,8 @@ resources:
       name: companion-jobs-demo-${bundle.target}
       description: "Section 4 exercises deployed as a bundle (target: ${bundle.target})"
 
-      # Deployed PAUSED in development mode. Six fields with a leading seconds
-      # field and ? for day-of-week: 06:00:00 UTC daily.
+      # Six fields with a leading seconds field and ? for day-of-week:
+      # 06:00:00 UTC daily. Paused in every target of this bundle.
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: UTC
@@ -39,3 +39,11 @@ resources:
               trigger_type: "{{job.trigger.type}}"
               repair_count: "{{job.repair_count}}"
               fail_me: "false"
+
+        # A pipeline task: the job orchestrates the pipeline. The pipeline's ID
+        # doesn't exist until deploy, so it's referenced through the bundle.
+        - task_key: refresh_summary
+          depends_on:
+            - task_key: extract
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.companion_pipeline.id}

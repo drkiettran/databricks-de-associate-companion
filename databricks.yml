@@ -1,14 +1,19 @@
 # databricks.yml — Declarative Automation Bundle for the companion exercises.
 #
-# Deploys the Section 4 jobs exercises as code rather than UI clicks.
+# One bundle, promoted through three environments:
 #
-#   databricks bundle validate                 # check the configuration
-#   databricks bundle deploy                   # create/update resources (target: dev)
-#   databricks bundle run companion_jobs_demo  # actually run the job
-#   databricks bundle destroy                  # remove what was deployed
+#   databricks bundle validate -t <dev|test|prod>
+#   databricks bundle deploy   -t <dev|test|prod>
+#   databricks bundle run      -t <dev|test|prod> companion_jobs_demo
+#   databricks bundle destroy  -t <dev|test|prod>
 #
-# No workspace host is set here. Targets fall back to your Databricks CLI
-# profile, so this file stays safe to publish and works for anyone who clones it.
+# Free Edition has a single workspace, so environments are isolated by SCHEMA
+# (de_cert_dev / de_cert_test / de_cert_prod) rather than by workspace. Create
+# those three schemas before deploying. The code is identical in every
+# environment — only the configuration below differs.
+#
+# No workspace host is set here: every target uses the workspace from your
+# Databricks CLI profile.
 
 bundle:
   name: de_associate_companion
@@ -20,24 +25,36 @@ variables:
   region:
     description: Region the params_demo task filters on (east or west).
     default: east
+  schema:
+    description: Schema this environment's pipeline writes to.
+    default: de_cert_dev
 
 targets:
-  # Development mode: resource names get a [dev <you>] prefix, and schedules
-  # and triggers are deployed PAUSED — so nothing runs unattended.
+  # Development: [dev <you>] prefix, schedules paused, pipelines in development mode.
   dev:
     mode: development
     default: true
-
-  # A second development target that overrides a variable, to show
-  # per-target configuration without touching the job definition.
-  west:
-    mode: development
     variables:
+      schema: de_cert_dev
+
+  # Test: no mode, so NEITHER the development nor production defaults apply.
+  # Presets supply the behaviors explicitly instead.
+  test:
+    presets:
+      name_prefix: "[test] "
+      trigger_pause_status: PAUSED
+    variables:
+      schema: de_cert_test
       region: west
 
-  # Production mode requires workspace.host and workspace.root_path unless
-  # run_as is a service principal. Both are deliberately omitted: this is a
-  # public repository, and the validation error is part of the exercise.
-  # Do not deploy this target.
+  # Production: one canonical deployment. Production mode requires root_path;
+  # ${workspace.current_user.userName} resolves it to whoever deploys.
+  # The schedule is paused so nothing runs unattended on Free Edition.
   prod:
     mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      trigger_pause_status: PAUSED
+    variables:
+      schema: de_cert_prod
