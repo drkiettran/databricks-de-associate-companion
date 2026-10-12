@@ -1,0 +1,41 @@
+# The Section 4 job, expressed as configuration.
+# Paths are relative to THIS file, hence the leading ../
+
+resources:
+  jobs:
+    companion_jobs_demo:
+      name: companion-jobs-demo-${bundle.target}
+      description: "Section 4 exercises deployed as a bundle (target: ${bundle.target})"
+
+      # Deployed PAUSED in development mode. Six fields with a leading seconds
+      # field and ? for day-of-week: 06:00:00 UTC daily.
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"
+        timezone_id: UTC
+
+      # No cluster spec: on a serverless workspace the tasks run serverless.
+      tasks:
+        - task_key: extract
+          notebook_task:
+            notebook_path: ../exercises/04_jobs/ex01_extract.py
+
+        - task_key: report
+          depends_on:
+            - task_key: extract
+          notebook_task:
+            notebook_path: ../exercises/04_jobs/ex02_report.py
+
+        - task_key: params_demo
+          depends_on:
+            - task_key: extract
+          notebook_task:
+            notebook_path: ../exercises/04_jobs/ex09_params_demo.py
+            base_parameters:
+              # ${...} is resolved by the bundle at DEPLOY time.
+              region: ${var.region}
+              # {{...}} is resolved by the jobs service at RUN time.
+              # Quoted, because unquoted {{ starts a YAML flow mapping.
+              run_id: "{{job.run_id}}"
+              trigger_type: "{{job.trigger.type}}"
+              repair_count: "{{job.repair_count}}"
+              fail_me: "false"

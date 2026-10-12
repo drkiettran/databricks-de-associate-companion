@@ -1,0 +1,43 @@
+# databricks.yml — Declarative Automation Bundle for the companion exercises.
+#
+# Deploys the Section 4 jobs exercises as code rather than UI clicks.
+#
+#   databricks bundle validate                 # check the configuration
+#   databricks bundle deploy                   # create/update resources (target: dev)
+#   databricks bundle run companion_jobs_demo  # actually run the job
+#   databricks bundle destroy                  # remove what was deployed
+#
+# No workspace host is set here. Targets fall back to your Databricks CLI
+# profile, so this file stays safe to publish and works for anyone who clones it.
+
+bundle:
+  name: de_associate_companion
+
+include:
+  - resources/*.yml
+
+variables:
+  region:
+    description: Region the params_demo task filters on (east or west).
+    default: east
+
+targets:
+  # Development mode: resource names get a [dev <you>] prefix, and schedules
+  # and triggers are deployed PAUSED — so nothing runs unattended.
+  dev:
+    mode: development
+    default: true
+
+  # A second development target that overrides a variable, to show
+  # per-target configuration without touching the job definition.
+  west:
+    mode: development
+    variables:
+      region: west
+
+  # Production mode requires workspace.host and workspace.root_path unless
+  # run_as is a service principal. Both are deliberately omitted: this is a
+  # public repository, and the validation error is part of the exercise.
+  # Do not deploy this target.
+  prod:
+    mode: production
