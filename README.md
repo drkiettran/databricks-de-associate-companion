@@ -101,12 +101,6 @@ objective, the `[FE]`/`[Paid]` tag, and starter code.
 Exercises are added chapter by chapter as the companion book is written. Folders
 without full exercises yet contain a `README.md` describing what will land there.
 
-## Contributing / releasing
-
-The generator produces only synthetic data, so anything you commit here is safe
-to make public. Never commit generated output (it's gitignored) or any
-real/organizational data — regenerate locally instead.
-
 ## License
 
 MIT — see `LICENSE`.
