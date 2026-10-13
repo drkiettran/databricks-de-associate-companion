@@ -19,17 +19,21 @@ FQ = f"{CATALOG}.{SCHEMA}"
 TBL = f"{FQ}.gov_managed"
 
 def probe(label, sql, show=True):
-    """Run one statement; report OK or the error's first line. Returns True on success."""
+    """Run one statement to completion; report OK or the full error. Returns True on success."""
     print(f"\n--- {label}")
     try:
         df = spark.sql(sql)
-        print("  OK")
-        if show:
-            display(df)
-        return True
+        rows = df.collect() if show else []   # force execution BEFORE declaring success
     except Exception as ex:
-        print("  BLOCKED —", str(ex).splitlines()[0][:160])
+        lines = str(ex).strip().splitlines()
+        print("  BLOCKED —", lines[0][:300])
+        for extra in lines[1:8]:               # keep the explanation that follows the first line
+            print("           ", extra[:300])
         return False
+    print("  OK")
+    for r in rows:
+        print("   ", tuple(r))
+    return True
 
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {FQ}")
 print("working schema:", FQ)
@@ -81,7 +85,7 @@ if recovered:
 probe("storage credentials", "SHOW STORAGE CREDENTIALS")
 probe("external locations", "SHOW EXTERNAL LOCATIONS")
 
-# A Volume path is NOT a valid table location: tables and Volumes cannot overlap.
+# LOCATION needs a cloud storage URI (s3://, abfss://, gs://), so a Volume path is rejected.
 probe("table at a Volume path (expected to fail)",
       f"CREATE TABLE {FQ}.gov_external (id INT) "
       f"LOCATION '/Volumes/{CATALOG}/de_cert/raw/_gov_external_test'", show=False)
@@ -90,7 +94,7 @@ probe("table at a Volume path (expected to fail)",
 
 # MAGIC %md
 # MAGIC ## 4. Privileges — what's granted by default
-# MAGIC Free Edition's `workspace` catalog comes with default grants. Read them before changing anything.
+# MAGIC Read the existing grants before changing anything, and notice what `SHOW GRANTS` leaves out.
 
 # COMMAND ----------
 
@@ -132,13 +136,14 @@ probe("DENY SELECT", f"DENY SELECT ON TABLE {TBL} TO {GROUP}", show=False)
 
 # MAGIC %md
 # MAGIC ## What to check
-# MAGIC - **Section 1:** the table's `Type` is `MANAGED`, and its `Location` is one you never chose.
+# MAGIC - **Section 1:** the table's `Type` is `MANAGED`. On Free Edition its `Location` comes back blank.
 # MAGIC - **Section 2:** whether `UNDROP` brought the table back, and its rows with it.
 # MAGIC - **Section 3:** whether any storage credential or external location exists, and the exact
 # MAGIC   error from creating a table at a Volume path.
-# MAGIC - **Section 4:** which principals hold which privileges on the `workspace` catalog and
-# MAGIC   its `default` schema.
-# MAGIC - **Section 5:** whether the schema-level `SELECT` appears when you look at the table.
+# MAGIC - **Section 4:** whether `SHOW GRANTS` lists anything. It shows explicit grants only —
+# MAGIC   not ownership, and not the workspace defaults.
+# MAGIC - **Section 5:** on the table, the schema's `SELECT` appears with `ObjectType` `SCHEMA` —
+# MAGIC   inherited, with its source named.
 # MAGIC - **Section 6:** the exact error `DENY` produces.
 
 # COMMAND ----------

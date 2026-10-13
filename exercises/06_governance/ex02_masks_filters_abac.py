@@ -20,18 +20,21 @@ FQ = f"{CATALOG}.{SCHEMA}"
 TBL = f"{FQ}.customers"
 
 def probe(label, sql, show=True):
-    """Run one statement; report OK or the error's first line. Returns True on success."""
+    """Run one statement to completion; report OK or the full error. Returns True on success."""
     print(f"\n--- {label}")
     try:
         df = spark.sql(sql)
-        print("  OK")
-        if show:
-            for r in df.collect():
-                print("   ", tuple(r))
-        return True
+        rows = df.collect() if show else []   # force execution BEFORE declaring success
     except Exception as ex:
-        print("  BLOCKED —", str(ex).splitlines()[0][:170])
+        lines = str(ex).strip().splitlines()
+        print("  BLOCKED —", lines[0][:300])
+        for extra in lines[1:8]:               # keep the explanation that follows the first line
+            print("           ", extra[:300])
         return False
+    print("  OK")
+    for r in rows:
+        print("   ", tuple(r))
+    return True
 
 spark.sql(f"CREATE SCHEMA IF NOT EXISTS {FQ}")
 spark.sql(f"DROP TABLE IF EXISTS {TBL}")
