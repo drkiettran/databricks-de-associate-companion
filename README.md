@@ -52,9 +52,10 @@ the files are ready for ingestion exercises:
 See `common/setup.py` for a one-call helper that creates the catalog, schema,
 and volume for you.
 
-> **Free Edition note:** you may not have privilege to `CREATE CATALOG`. If so,
-> set `COMPANION_CATALOG` to your workspace's existing default catalog; the
-> helper still creates the schema and volume inside it.
+> **Free Edition note:** `common/config.py` defaults to the `workspace` catalog,
+> which Free Edition provides, so no configuration is needed. Free Edition doesn't
+> permit `CREATE CATALOG`; the helper creates the schema and volume inside
+> `workspace`.
 
 ### 3. Work the exercises
 
@@ -79,6 +80,8 @@ objective, the `[FE]`/`[Paid]` tag, and starter code.
 │   ├── 05_cicd/             # Ch 5 — Git Folders, Automation Bundles, CLI
 │   ├── 06_governance/       # Ch 6 — Unity Catalog governance & security
 │   └── 07_troubleshooting/  # Ch 7 — query profile, Spark UI, optimization
+├── databricks.yml           # Ch 5 — the automation bundle (dev / test / prod)
+├── resources/               # Ch 5 — the bundle's job and pipeline definitions
 ├── docs/
 │   └── environment.md       # Free Edition vs paid; Git Folders import; volumes
 ├── requirements.txt
@@ -98,8 +101,7 @@ objective, the `[FE]`/`[Paid]` tag, and starter code.
 | 06_governance | Ch 6 | Governance and Security | 15% |
 | 07_troubleshooting | Ch 7 | Troubleshooting, Monitoring, Optimization | 10% |
 
-Exercises are added chapter by chapter as the companion book is written. Folders
-without full exercises yet contain a `README.md` describing what will land there.
+Folders without exercises yet contain a `README.md` describing their scope.
 
 ## License
 
@@ -115,6 +117,3 @@ rather than calling `table_name()` and `volume_path()`.
 That matches the Free Edition defaults, so nothing needs changing there. On a
 paid workspace without a `workspace` catalog, edit the catalog name in each
 exercise — including the `%sql` cells, which cannot read Python variables.
-Migrating the exercises onto the config helpers is planned.
-
-See exercises/05_cicd for the CI/CD exercises.
