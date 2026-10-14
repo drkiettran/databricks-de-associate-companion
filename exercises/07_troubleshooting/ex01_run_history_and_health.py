@@ -38,8 +38,8 @@ def probe(label, sql, show=True):
 # adapt instead of failing when a column is missing.
 RUN_COLS  = set(spark.table("system.lakeflow.job_run_timeline").columns)
 JOB_COLS  = set(spark.table("system.lakeflow.jobs").columns)
-def col_or_null(c):
-    return f"t.{c}" if c in RUN_COLS else "CAST(NULL AS BIGINT)"
+def col_or_null(c, typ="BIGINT"):
+    return f"t.{c}" if c in RUN_COLS else f"CAST(NULL AS {typ})"
 print("duration columns present:",
       sorted(c for c in ("run_duration_seconds", "queue_duration_seconds",
                          "execution_duration_seconds") if c in RUN_COLS) or "none")
@@ -78,6 +78,8 @@ SELECT t.job_id,
                              max(t.period_end_time))          AS span_seconds,
        max({col_or_null("run_duration_seconds")})              AS run_duration_seconds,
        max({col_or_null("queue_duration_seconds")})            AS queue_seconds,
+       max({col_or_null("execution_duration_seconds")})        AS execution_seconds,
+       max_by({col_or_null("run_type", "STRING")}, t.period_end_time) AS run_type,
        max_by(t.result_state, t.period_end_time)              AS result_state,
        max_by(t.trigger_type, t.period_end_time)              AS trigger_type
 FROM system.lakeflow.job_run_timeline t
@@ -94,6 +96,13 @@ SELECT job_name,
        sum(CASE WHEN abs(span_seconds - run_duration_seconds) > 5
                 THEN 1 ELSE 0 END)                                     AS measures_disagree
 FROM runs GROUP BY job_name ORDER BY runs DESC
+""")
+
+probe("where the time goes — the eight longest runs", """
+SELECT job_name, started, slices,
+       span_seconds, run_duration_seconds, execution_seconds, queue_seconds,
+       span_seconds - run_duration_seconds AS span_minus_run
+FROM runs ORDER BY span_seconds DESC LIMIT 8
 """)
 
 # COMMAND ----------
@@ -118,18 +127,22 @@ FROM runs GROUP BY trigger_type ORDER BY runs DESC
 
 # MAGIC %md
 # MAGIC ## 3. Failure rate — terminal runs only
+# MAGIC Cancellations are counted separately. A run someone stopped didn't fail.
 
 # COMMAND ----------
 
-probe("failure rate per job", """
+probe("outcomes per job — errors and cancellations kept apart", """
 SELECT job_name,
-       count(*)                                                  AS terminal_runs,
-       sum(CASE WHEN result_state <> 'SUCCEEDED' THEN 1 ELSE 0 END) AS not_succeeded,
-       round(100.0 * sum(CASE WHEN result_state <> 'SUCCEEDED' THEN 1 ELSE 0 END)
-             / count(*), 1)                                      AS failure_pct
+       count(*)                                                                  AS terminal_runs,
+       sum(CASE WHEN result_state = 'SUCCEEDED' THEN 1 ELSE 0 END)               AS succeeded,
+       sum(CASE WHEN result_state IN ('ERROR', 'FAILED', 'TIMED_OUT')
+                THEN 1 ELSE 0 END)                                               AS errored,
+       sum(CASE WHEN result_state = 'CANCELLED' THEN 1 ELSE 0 END)               AS cancelled,
+       round(100.0 * sum(CASE WHEN result_state IN ('ERROR', 'FAILED', 'TIMED_OUT')
+                              THEN 1 ELSE 0 END) / count(*), 1)                  AS error_pct
 FROM runs
 WHERE result_state IS NOT NULL
-GROUP BY job_name ORDER BY failure_pct DESC, terminal_runs DESC
+GROUP BY job_name ORDER BY error_pct DESC, terminal_runs DESC
 """)
 
 # COMMAND ----------
@@ -211,10 +224,11 @@ GROUP BY j.name, task_key ORDER BY job_name, avg_seconds DESC
 
 # COMMAND ----------
 
-probe("runs whose job has no current definition", """
-SELECT job_id, count(*) AS runs, min(started) AS first_run, max(started) AS last_run
+probe("runs with no job definition at all — and what kind of run each was", """
+SELECT coalesce(run_type, 'NULL') AS run_type, count(*) AS runs,
+       min(started) AS first_run, max(started) AS last_run
 FROM runs WHERE job_name = '(job no longer defined)'
-GROUP BY job_id ORDER BY last_run DESC
+GROUP BY run_type ORDER BY runs DESC
 """)
 if "delete_time" in JOB_COLS:
     probe("jobs whose latest record says they were deleted", f"""
@@ -229,11 +243,12 @@ else:
 
 # MAGIC %md
 # MAGIC ## What to check
-# MAGIC - **Section 1:** whether `run_duration_seconds` is populated, and whether it agrees with the
-# MAGIC   span of each run's timeline slices.
+# MAGIC - **Section 1:** whether `run_duration_seconds` agrees with the span of each run's timeline
+# MAGIC   slices — and, for the slowest runs, how much of their time was execution versus queueing.
 # MAGIC - **Section 2:** which `result_state` values appear — including `NULL` — and which trigger types.
-# MAGIC - **Section 3:** each job's failure rate, counting terminal runs only.
+# MAGIC - **Section 3:** each job's error rate, with cancellations counted separately.
 # MAGIC - **Section 4:** each job's median and 90th-percentile duration, which runs stand out, and how
 # MAGIC   the latest run compares.
 # MAGIC - **Section 5:** which task accounts for most of each job's time.
-# MAGIC - **Section 6:** whether jobs you deleted still have run history here.
+# MAGIC - **Section 6:** whether jobs you deleted still have run history here, and what kind of runs
+# MAGIC   the ones with no job definition were.
