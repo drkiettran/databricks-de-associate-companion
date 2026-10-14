@@ -32,4 +32,3 @@ assert n == bad or bad == -1, f"quarantined {n} but upstream said {bad}"
 display(spark.table(QUAR).limit(5))
 
 # COMMAND ----------
-
