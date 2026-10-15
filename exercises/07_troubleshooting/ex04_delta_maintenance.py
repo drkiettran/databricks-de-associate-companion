@@ -96,8 +96,12 @@ probe("OPTIMIZE ZORDER BY (region)", f"OPTIMIZE {TBL} ZORDER BY (region)", show=
 probe("ALTER TABLE ... CLUSTER BY (region)", f"ALTER TABLE {TBL} CLUSTER BY (region)", show=False)
 probe("OPTIMIZE (incremental clustering)", f"OPTIMIZE {TBL}", show=False)
 probe("ALTER TABLE ... CLUSTER BY AUTO", f"ALTER TABLE {TBL} CLUSTER BY AUTO", show=False)
-probe("clustering columns, from DESCRIBE DETAIL",
-      f"SELECT clusteringColumns FROM (DESCRIBE DETAIL {TBL})")
+# DESCRIBE DETAIL can't be wrapped in a subquery, so read its one row directly.
+detail = spark.sql(f"DESCRIBE DETAIL {TBL}").collect()[0]
+print("\n--- clustering columns, from DESCRIBE DETAIL")
+print("  OK")
+print("    clusteringColumns =", detail["clusteringColumns"])
+print("    numFiles =", detail["numFiles"], "| sizeInBytes =", detail["sizeInBytes"])
 
 # COMMAND ----------
 
@@ -120,9 +124,18 @@ probe("DESCRIBE HISTORY — operation per version",
 
 # COMMAND ----------
 
-probe("is predictive optimization on for this schema?",
-      f"SELECT * FROM (DESCRIBE SCHEMA EXTENDED {FQ})")
-probe("ALTER SCHEMA ... ENABLE PREDICTIVE OPTIMIZATION",
+print("\n--- schema properties (predictive optimization shows here if set)")
+try:
+    for r in spark.sql(f"DESCRIBE SCHEMA EXTENDED {FQ}").collect():
+        vals = [str(v) for v in r if v is not None]
+        if any("redictive" in v or "ptimiz" in v for v in vals):
+            print("    ", tuple(r))
+    print("  OK (scan complete; if nothing printed above, no predictive-optimization property is set)")
+except Exception as ex:
+    print("  BLOCKED —", str(ex).splitlines()[0][:200])
+# NOTE: OK here means the statement was ACCEPTED. Whether predictive optimization then actually
+# runs is separate — it executes on serverless jobs compute, which a free tier may not provide.
+probe("ALTER SCHEMA ... ENABLE PREDICTIVE OPTIMIZATION (accepted != necessarily running)",
       f"ALTER SCHEMA {FQ} ENABLE PREDICTIVE OPTIMIZATION", show=False)
 
 # COMMAND ----------
