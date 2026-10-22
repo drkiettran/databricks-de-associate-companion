@@ -122,7 +122,7 @@
 # MAGIC COPY INTO sales_bronze_ci_auto
 # MAGIC FROM '/Volumes/workspace/de_cert/raw/sales'
 # MAGIC FILEFORMAT = JSON
-# MAGIC FORMAT_OPTIONS ('inferColumnTypes' = 'true')
+# MAGIC FORMAT_OPTIONS ('inferSchema' = 'true', 'mergeSchema' = 'true')
 # MAGIC COPY_OPTIONS   ('mergeSchema' = 'true');
 
 # COMMAND ----------
